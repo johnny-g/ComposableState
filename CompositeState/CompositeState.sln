@@ -3,9 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.31729.503
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CompositeState", "CompositeState\CompositeState.csproj", "{FCE356CF-6CDC-4784-B4DD-2531DA616127}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CompositeState", "CompositeState\CompositeState.csproj", "{FCE356CF-6CDC-4784-B4DD-2531DA616127}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CompositeStateTests", "CompositeStateTests\CompositeStateTests.csproj", "{11069004-9703-4426-B6F2-549739A00D35}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CompositeStateTests", "CompositeStateTests\CompositeStateTests.csproj", "{11069004-9703-4426-B6F2-549739A00D35}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{1174706A-760F-4449-97D2-043E298165F2}"
 	ProjectSection(SolutionItems) = preProject
@@ -14,6 +14,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		..\CONTRIBUTING.md = ..\CONTRIBUTING.md
 		..\LICENSE = ..\LICENSE
 		..\README.md = ..\README.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Actions", "Actions", "{711F6131-E2D3-4892-9142-396E587CD682}"
+	ProjectSection(SolutionItems) = preProject
+		..\.github\workflows\dotnet.yml = ..\.github\workflows\dotnet.yml
 	EndProjectSection
 EndProject
 Global
