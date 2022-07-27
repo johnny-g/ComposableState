@@ -38,6 +38,7 @@ namespace CompositeState
                                 new StateTuple
                                 {
                                     OnEnter = s.OnEnter?.Compile(),
+                                    OnExit = s.OnExit?.Compile(),
                                     State = s.State,
                                     SubState = mapped.SingleOrDefault(m => m.Key == s.SubState).Value,
                                     Transitions = (s.Transitions ?? EmptyTransitions).
@@ -46,7 +47,6 @@ namespace CompositeState
                                             {
                                                 Input = t.Input,
                                                 Next = t.Next,
-                                                OnExit = t.OnExit?.Compile(),
                                             }).
                                         ToArray(),
                                 }).
