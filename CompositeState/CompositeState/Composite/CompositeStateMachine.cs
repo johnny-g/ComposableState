@@ -43,7 +43,8 @@ namespace CompositeState.Composite
 
                 if (transition != null)
                 {
-                    transition.OnExit?.Invoke();
+                    current.SubState?.OnExit();
+                    current.OnExit?.Invoke();
                     current.SubState?.Reset();
                     current = states.Single(s => s.State.Equals(transition.Next));
                     current.OnEnter?.Invoke();
@@ -66,6 +67,12 @@ namespace CompositeState.Composite
         {
             current.OnEnter?.Invoke();
             current.SubState?.OnEnter();
+        }
+
+        public void OnExit()
+        {
+            current.SubState?.OnExit();
+            current.OnExit?.Invoke();
         }
 
         public void Reset()

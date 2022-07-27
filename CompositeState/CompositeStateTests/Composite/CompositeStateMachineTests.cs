@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using Xunit;
 
 namespace CompositeState.Composite
@@ -7,9 +8,9 @@ namespace CompositeState.Composite
     public class CompositeStateMachineTests
     {
 
-        public enum Input { Continue, GoBack, }
+        public enum Input { Continue, GoBack, Skip, }
 
-        public enum Level1State { A, B, C, }
+        public enum Level1State { Start, A, B, C, }
         public enum Level2State { D, E, F, }
 
         public static readonly StateMachineConfiguration Level2Configuration =
@@ -134,6 +135,177 @@ namespace CompositeState.Composite
 
             Assert.Equal(StateMachineResult.Transitioned, actual.Result);
             Assert.Equal(new Enum[] { Level1State.B, Level2State.D, }, actual.State);
+        }
+
+        [Fact]
+        public void Fire_WhenStateHasOnEnter_DoesNotExecuteOnInstantiation()
+        {
+            List<string> log = new List<string>();
+            StateMachineConfiguration configuration = GetStateMachineWithActions(aOnEnter: () => log.Add("aOnEnter"));
+
+            IStateMachine machine = configuration.ToCompositeStateMachine();
+
+            Assert.Empty(log);
+        }
+
+        [Fact]
+        public void Fire_WhenStateHasOnEnter_DoesExecuteAfterTransition()
+        {
+            List<string> log = new List<string>();
+            StateMachineConfiguration configuration = GetStateMachineWithActions(
+                aOnEnter: () => log.Add("aOnEnter"),
+                bOnEnter: () => log.Add("bOnEnter"),
+                dOnEnter: () => log.Add("dOnEnter"),
+                eOnEnter: () => log.Add("eOnEnter"));
+            CompositeStateMachine machine = configuration.ToCompositeStateMachine();
+
+            machine.Fire(Input.Continue);
+            machine.Fire(Input.Continue);
+            machine.Fire(Input.Continue);
+
+            Assert.Collection(
+                log,
+                l => Assert.Equal("aOnEnter", l),
+                l => Assert.Equal("dOnEnter", l),
+                l => Assert.Equal("eOnEnter", l),
+                l => Assert.Equal("bOnEnter", l));
+        }
+
+        [Fact]
+        public void Fire_WhenStateHasOnEnterAndSkipSubState_DoesNotExecuteSubStateOnEnter()
+        {
+            List<string> log = new List<string>();
+            StateMachineConfiguration configuration = GetStateMachineWithActions(
+                aOnEnter: () => log.Add("aOnEnter"),
+                bOnEnter: () => log.Add("bOnEnter"),
+                dOnEnter: () => log.Add("dOnEnter"),
+                eOnEnter: () => log.Add("eOnEnter"));
+            CompositeStateMachine machine = configuration.ToCompositeStateMachine();
+
+            machine.Fire(Input.Continue);
+            machine.Fire(Input.Skip);
+
+            Assert.Collection(
+                log,
+                l => Assert.Equal("aOnEnter", l),
+                l => Assert.Equal("dOnEnter", l),
+                l => Assert.Equal("bOnEnter", l));
+        }
+
+        [Fact]
+        public void Fire_WhenStateHasOnExit_DoesExecuteBeforeTransition()
+        {
+            List<string> log = new List<string>();
+            StateMachineConfiguration configuration = GetStateMachineWithActions(
+                aOnExit: () => log.Add("aOnExit"),
+                bOnExit: () => log.Add("bOnExit"),
+                dOnExit: () => log.Add("dOnExit"),
+                eOnExit: () => log.Add("eOnExit"));
+            CompositeStateMachine machine = configuration.ToCompositeStateMachine();
+
+            machine.Fire(Input.Continue);
+            machine.Fire(Input.Continue);
+            machine.Fire(Input.Continue);
+
+            Assert.Collection(
+                log,
+                l => Assert.Equal("dOnExit", l),
+                l => Assert.Equal("eOnExit", l),
+                l => Assert.Equal("aOnExit", l));
+        }
+
+        [Fact]
+        public void Fire_WhenStateHasOnExitAndSkipSubState_DoesNotExecuteSubStateOnExit()
+        {
+            List<string> log = new List<string>();
+            StateMachineConfiguration configuration = GetStateMachineWithActions(
+                aOnExit: () => log.Add("aOnExit"),
+                bOnExit: () => log.Add("bOnExit"),
+                dOnExit: () => log.Add("dOnExit"),
+                eOnExit: () => log.Add("eOnExit"));
+            CompositeStateMachine machine = configuration.ToCompositeStateMachine();
+
+            machine.Fire(Input.Continue);
+            machine.Fire(Input.Skip);
+
+            Assert.Collection(
+                log,
+                l => Assert.Equal("dOnExit", l),
+                l => Assert.Equal("aOnExit", l));
+        }
+
+        // private methods
+
+        private static StateMachineConfiguration GetStateMachineWithActions(
+            Action aOnEnter = null, Action aOnExit = null,
+            Action bOnEnter = null, Action bOnExit = null,
+            Action dOnEnter = null, Action dOnExit = null,
+            Action eOnEnter = null, Action eOnExit = null)
+        {
+            aOnEnter = aOnEnter ?? (() => { });
+            aOnExit = aOnExit ?? (() => { });
+            bOnEnter = bOnEnter ?? (() => { });
+            bOnExit = bOnExit ?? (() => { });
+            dOnEnter = dOnEnter ?? (() => { });
+            dOnExit = dOnExit ?? (() => { });
+            eOnEnter = eOnEnter ?? (() => { });
+            eOnExit = eOnExit ?? (() => { });
+
+            StateMachineConfiguration level2 =
+                new StateMachineConfiguration
+                {
+                    Start = Level2State.D,
+                    States = new[]
+                    {
+                        new StateConfiguration
+                        {
+                            OnEnter = () => dOnEnter(),
+                            OnExit = () => dOnExit(),
+                            State = Level2State.D,
+                            Transitions = new[] { new TransitionConfiguration { Input = Input.Continue, Next = Level2State.E, }, }
+                        },
+                        new StateConfiguration
+                        {
+                            OnEnter = () => eOnEnter(),
+                            OnExit = () => eOnExit(),
+                            State = Level2State.E,
+                        },
+                    },
+                };
+
+            StateMachineConfiguration level1 = 
+                new StateMachineConfiguration
+                {
+                    Start = Level1State.Start,
+                    States = new[]
+                    {
+                        new StateConfiguration
+                        {
+                            State = Level1State.Start,
+                            Transitions = new[] { new TransitionConfiguration { Input = Input.Continue, Next = Level1State.A, }, }
+                        },
+                        new StateConfiguration
+                        {
+                            OnEnter = () => aOnEnter(),
+                            OnExit = () => aOnExit(),
+                            State = Level1State.A,
+                            SubState = level2,
+                            Transitions = new[]
+                            {
+                                new TransitionConfiguration { Input = Input.Continue, Next = Level1State.B, },
+                                new TransitionConfiguration { Input = Input.Skip, Next = Level1State.B, },
+                            }
+                        },
+                        new StateConfiguration
+                        {
+                            OnEnter = () => bOnEnter(),
+                            OnExit = () => bOnExit(),
+                            State = Level1State.B,
+                        },
+                    },
+                };
+
+            return level1;
         }
 
     }

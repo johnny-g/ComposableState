@@ -7,7 +7,6 @@ namespace CompositeState.Composite
     {
         public Enum Input { get; set; }
         public Enum Next { get; set; }
-        public Action OnExit { get; set; }
     }
 
 }
