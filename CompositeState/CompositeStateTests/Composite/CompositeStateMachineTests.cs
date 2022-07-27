@@ -234,13 +234,36 @@ namespace CompositeState.Composite
                 l => Assert.Equal("aOnExit", l));
         }
 
+        [Fact]
+        public void Fire_WhenTransitionHasOnTransition_DoesExecuteOnTransition()
+        {
+            List<string> log = new List<string>();
+            StateMachineConfiguration configuration = GetStateMachineWithActions(
+                continueAToBOnTransition: () => log.Add("continueAToBOnTransition"),
+                skipAToBOnTransition: () => log.Add("skipAToBOnTransition"),
+                continueDToEOnTransition: () => log.Add("continueDToEOnTransition"));
+            CompositeStateMachine machine = configuration.ToCompositeStateMachine();
+
+            machine.Fire(Input.Continue);
+            machine.Fire(Input.Continue);
+            machine.Fire(Input.Continue);
+
+            Assert.Collection(
+                log,
+                l => Assert.Equal("continueDToEOnTransition", l),
+                l => Assert.Equal("continueAToBOnTransition", l));
+        }
+
         // private methods
 
         private static StateMachineConfiguration GetStateMachineWithActions(
             Action aOnEnter = null, Action aOnExit = null,
             Action bOnEnter = null, Action bOnExit = null,
             Action dOnEnter = null, Action dOnExit = null,
-            Action eOnEnter = null, Action eOnExit = null)
+            Action eOnEnter = null, Action eOnExit = null,
+            Action continueAToBOnTransition = null,
+            Action skipAToBOnTransition = null,
+            Action continueDToEOnTransition = null)
         {
             aOnEnter = aOnEnter ?? (() => { });
             aOnExit = aOnExit ?? (() => { });
@@ -250,6 +273,9 @@ namespace CompositeState.Composite
             dOnExit = dOnExit ?? (() => { });
             eOnEnter = eOnEnter ?? (() => { });
             eOnExit = eOnExit ?? (() => { });
+            continueAToBOnTransition = continueAToBOnTransition ?? (() => { });
+            skipAToBOnTransition = skipAToBOnTransition ?? (() => { });
+            continueDToEOnTransition = continueDToEOnTransition ?? (() => { });
 
             StateMachineConfiguration level2 =
                 new StateMachineConfiguration
@@ -262,7 +288,15 @@ namespace CompositeState.Composite
                             OnEnter = () => dOnEnter(),
                             OnExit = () => dOnExit(),
                             State = Level2State.D,
-                            Transitions = new[] { new TransitionConfiguration { Input = Input.Continue, Next = Level2State.E, }, }
+                            Transitions = new[]
+                            {
+                                new TransitionConfiguration
+                                {
+                                    Input = Input.Continue,
+                                    Next = Level2State.E,
+                                    OnTransition = () => continueDToEOnTransition(),
+                                },
+                            }
                         },
                         new StateConfiguration
                         {
@@ -292,8 +326,18 @@ namespace CompositeState.Composite
                             SubState = level2,
                             Transitions = new[]
                             {
-                                new TransitionConfiguration { Input = Input.Continue, Next = Level1State.B, },
-                                new TransitionConfiguration { Input = Input.Skip, Next = Level1State.B, },
+                                new TransitionConfiguration
+                                {
+                                    Input = Input.Continue,
+                                    Next = Level1State.B,
+                                    OnTransition = () => continueAToBOnTransition(),
+                                },
+                                new TransitionConfiguration
+                                {
+                                    Input = Input.Skip,
+                                    Next = Level1State.B,
+                                    OnTransition = () => skipAToBOnTransition(),
+                                },
                             }
                         },
                         new StateConfiguration

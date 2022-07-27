@@ -47,6 +47,7 @@ namespace CompositeState
                                             {
                                                 Input = t.Input,
                                                 Next = t.Next,
+                                                OnTransition = t.OnTransition?.Compile(),
                                             }).
                                         ToArray(),
                                 }).
