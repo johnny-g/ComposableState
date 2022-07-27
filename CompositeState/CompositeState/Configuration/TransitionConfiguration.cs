@@ -8,6 +8,7 @@ namespace CompositeState
     {
         public Enum Input { get; set; }
         public Enum Next { get; set; }
+        public Expression<Action> OnTransition { get; set; }
     }
 
 }

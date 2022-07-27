@@ -47,6 +47,7 @@ namespace CompositeState.Composite
                     current.OnExit?.Invoke();
                     current.SubState?.Reset();
                     current = states.Single(s => s.State.Equals(transition.Next));
+                    transition.OnTransition?.Invoke();
                     current.OnEnter?.Invoke();
                     current.SubState?.OnEnter();
 
