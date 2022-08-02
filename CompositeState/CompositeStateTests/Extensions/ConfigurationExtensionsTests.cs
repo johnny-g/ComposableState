@@ -1,5 +1,6 @@
 ﻿using System;
 using CompositeState.Composite;
+using CompositeState.Linear;
 using Xunit;
 
 namespace CompositeState
@@ -195,6 +196,78 @@ namespace CompositeState
             Assert.Equal(new Enum[] { Level1State.A, Level2State.D, }, actual.State);
             Assert.Same(actual[Level1State.A].SubState, actual[Level1State.B].SubState);
             Assert.Same(actual[Level1State.C].SubState, actual[Level1State.B].SubState[Level2State.E].SubState);
+        }
+
+        [Fact]
+        public void ToStateTransitionTable()
+        {
+            StateMachineConfiguration subStateE = new StateMachineConfiguration
+            {
+                Start = Level3State.G,
+                States = new[]
+                {
+                    new StateConfiguration
+                    {
+                        State = Level3State.G,
+                        Transitions = new[] { new TransitionConfiguration { Input = Input.Continue, Next = Level3State.H, }, },
+                    },
+                    new StateConfiguration
+                    {
+                        State = Level3State.H,
+                        Transitions = new TransitionConfiguration[] { },
+                    },
+                },
+            };
+
+            StateMachineConfiguration subStateB = new StateMachineConfiguration
+            {
+                Start = Level2State.D,
+                States = new[]
+                {
+                    new StateConfiguration
+                    {
+                        State = Level2State.D,
+                        Transitions = new[] { new TransitionConfiguration { Input = Input.Continue, Next = Level2State.E, }, },
+                    },
+                    new StateConfiguration
+                    {
+                        State = Level2State.E,
+                        SubState = subStateE,
+                        Transitions = new[] { new TransitionConfiguration { Input = Input.Continue, Next = Level2State.F, }, },
+                    },
+                    new StateConfiguration
+                    {
+                        State = Level2State.F,
+                        Transitions = new TransitionConfiguration[] { },
+                    },
+                },
+            };
+
+            StateMachineConfiguration configuration = new StateMachineConfiguration
+            {
+                Start = Level1State.A,
+                States = new[]
+                {
+                    new StateConfiguration
+                    {
+                        State = Level1State.A,
+                        Transitions = new[] { new TransitionConfiguration { Input = Input.Continue, Next = Level1State.B, }, },
+                    },
+                    new StateConfiguration
+                    {
+                        State = Level1State.B,
+                        SubState = subStateB,
+                        Transitions = new[] { new TransitionConfiguration { Input = Input.Continue, Next = Level1State.C, }, },
+                    },
+                    new StateConfiguration
+                    {
+                        State = Level1State.C,
+                        Transitions = new TransitionConfiguration[] { },
+                    },
+                },
+            };
+
+            StateTransitionTable table = configuration.ToStateTransitionTable(isDebuggerDisplayEnabled: true);
         }
 
     }
