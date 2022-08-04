@@ -268,6 +268,7 @@ namespace CompositeState
             };
 
             StateTransitionTable table = configuration.ToStateTransitionTable(isDebuggerDisplayEnabled: true);
+
         }
 
     }

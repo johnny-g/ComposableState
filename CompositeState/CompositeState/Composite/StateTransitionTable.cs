@@ -5,25 +5,25 @@ using System.Linq;
 namespace CompositeState.Linear
 {
 
+    [System.Diagnostics.DebuggerDisplay("{DebuggerDisplay}")]
+    public class StateTuple
+    {
+        public Enum[] State { get; set; }
+        public TransitionTuple[] Transitions { get; set; }
+        public string DebuggerDisplay { get; set; }
+    }
+
+    [System.Diagnostics.DebuggerDisplay("{DebuggerDisplay}")]
+    public class TransitionTuple
+    {
+        public Enum Input { get; set; }
+        public int Next { get; set; }
+        public Action Output { get; set; }
+        public string DebuggerDisplay { get; set; }
+    }
+
     public class StateTransitionTable : IStateMachine
     {
-        [System.Diagnostics.DebuggerDisplay("{DebuggerDisplay}")]
-        public class StateTuple
-        {
-            public Enum[] State { get; set; }
-            public TransitionTuple[] Transitions { get; set; }
-            public string DebuggerDisplay { get; set; }
-        }
-
-        [System.Diagnostics.DebuggerDisplay("{DebuggerDisplay}")]
-        public class TransitionTuple
-        {
-            public Enum Input { get; set; }
-            public int Next { get; set; }
-            public Action Output { get; set; }
-            public string DebuggerDisplay { get; set; }
-        }
-
         private int currentState = 0;
         private StateTuple[] states = null;
 
