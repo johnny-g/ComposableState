@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using CompositeState.Composite;
 using CompositeState.Linear;
 
@@ -25,12 +26,15 @@ namespace CompositeState
         {
             public Enum Input { get; set; }
             public Enum[] Next { get; set; }
+            public Expression<Action> OnTransition { get; set; }
             public int Rank { get; set; }
         }
 
         public class StateTraversal
         {
             public StateConfiguration Configuration { get; set; }
+            public Expression<Action>[] OnEnter { get; set; }
+            public Expression<Action>[] OnExit { get; set; }
             public Enum[] State { get; set; }
             public TransitionTraversal[] Transitions { get; set; }
         }
@@ -63,12 +67,15 @@ namespace CompositeState
                         {
                             Configuration = s,
                             State = new[] { s.State, },
+                            OnEnter = new[] { s.OnEnter, },
+                            OnExit = new[] { s.OnExit, },
                             Transitions = s.Transitions.
                                 Select(t => 
                                     new TransitionTraversal
                                     {
                                         Input = t.Input,
                                         Next = configuration.States.GetNextFullStatePath(t.Next),
+                                        OnTransition = t.OnTransition,
                                         Rank = 1,
                                     }).
                                 ToArray(),
@@ -92,6 +99,7 @@ namespace CompositeState
                                     Next = current.State.
                                         Concat(current.Configuration.SubState.States.GetNextFullStatePath(t.Next)).
                                         ToArray(),
+                                    OnTransition = t.OnTransition,
                                     Rank = childState.Length,
                                 }).
                             ToArray();
@@ -100,6 +108,8 @@ namespace CompositeState
                             new StateTraversal
                             {
                                 Configuration = child,
+                                OnEnter = current.OnEnter.Concat(new[] { child.OnEnter, }).ToArray(),
+                                OnExit = new[] { child.OnExit, }.Concat(current.OnExit).ToArray(),
                                 State = childState,
                                 Transitions = current.Transitions.Concat(childTransitions).ToArray(),
                             });
@@ -112,6 +122,11 @@ namespace CompositeState
             {
                 StateTraversal current = unrolled[i];
 
+                Action[] onExits = unrolled[i].OnExit.
+                    Where(e => e != null).
+                    Select(e => e.Compile()).
+                    ToArray();
+
                 TransitionTraversal[] transitions = current.Transitions.
                     GroupBy(t => t.Input).
                     Select(g => g.OrderByDescending(t => t.Rank).FirstOrDefault()).
@@ -122,13 +137,27 @@ namespace CompositeState
                     DebuggerDisplay = isDebuggerDisplayEnabled ? $"{string.Join<Enum>(".", current.State)} ({transitions.Length} transitions)" : string.Empty,
                     State = current.State,
                     Transitions = transitions.
-                        Select(t => 
-                            new StateTransitionTable.TransitionTuple
+                        Select(t =>
                             {
-                                DebuggerDisplay = isDebuggerDisplayEnabled ? $"{string.Join<Enum>(".", current.State)} -- {t.Input} --> {string.Join<Enum>(".", t.Next)}" : string.Empty,
-                                Input = t.Input,
-                                Next = unrolled.IndexOf(unrolled.Single(s => s.State.SequenceEqual(t.Next))),
-                                Output = null,
+                                Action onTransition = t.OnTransition?.Compile();
+                                int nextIndex = unrolled.IndexOf(unrolled.Single(s => s.State.SequenceEqual(t.Next)));
+                                Action[] onEnters = unrolled[nextIndex].OnEnter.
+                                    Where(e => e != null).
+                                    Select(e => e.Compile()).
+                                    ToArray();
+                                return new StateTransitionTable.TransitionTuple
+                                {
+                                    DebuggerDisplay = isDebuggerDisplayEnabled ? $"{string.Join<Enum>(".", current.State)} -- {t.Input} --> {string.Join<Enum>(".", t.Next)}" : string.Empty,
+                                    Input = t.Input,
+                                    Next = nextIndex,
+                                    Output =
+                                        () =>
+                                        {
+                                            foreach (Action onExit in onExits) { onExit(); }
+                                            onTransition?.Invoke();
+                                            foreach (Action onEnter in onEnters) { onEnter(); }
+                                        },
+                                };
                             }).
                         ToArray(),
                 };
