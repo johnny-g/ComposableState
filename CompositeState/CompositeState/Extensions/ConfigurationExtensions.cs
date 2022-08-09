@@ -144,6 +144,120 @@ namespace CompositeState
             return new Linear.StateTransitionTable(states);
         }
 
+        public static IEnumerable<Linear.StateTransition> ToStateTransitions(
+            this StateMachineConfiguration configuration,
+            bool isDebuggerDisplayEnabled = false)
+        {
+            Stack<StateTraversal> visit = new Stack<StateTraversal>(
+                configuration.States.
+                    OrderByStartStateThenPreserveOrder(configuration.Start).
+                    Reverse().
+                    Select(s =>
+                        new StateTraversal
+                        {
+                            Configuration = s,
+                            OnEnter = new[] { s.OnEnter, },
+                            OnExit = new[] { s.OnExit, },
+                            State = new[] { s.State, },
+                            Transitions = s.Transitions.
+                                Select(t =>
+                                    new TransitionTraversal
+                                    {
+                                        Input = t.Input,
+                                        Next = configuration.States.GetNextFullStatePath(t.Next),
+                                        OnTransition = t.OnTransition,
+                                        Rank = 1,
+                                    }).
+                                ToArray(),
+                        }));
+
+            List<StateTraversal> unrolled = new List<StateTraversal>();
+            for (; visit.Any();)
+            {
+                StateTraversal current = visit.Pop();
+                if (current.Configuration.SubState == null) { unrolled.Add(current); }
+                else
+                {
+                    foreach (StateConfiguration child in current.Configuration.SubState.States.OrderByStartStateThenPreserveOrder(current.Configuration.SubState.Start).Reverse())
+                    {
+                        Enum[] childState = current.State.Concat(new[] { child.State, }).ToArray();
+                        TransitionTraversal[] childTransitions = child.Transitions.
+                            Select(t =>
+                                new TransitionTraversal
+                                {
+                                    Input = t.Input,
+                                    Next = current.State.
+                                        Concat(current.Configuration.SubState.States.GetNextFullStatePath(t.Next)).
+                                        ToArray(),
+                                    OnTransition = t.OnTransition,
+                                    Rank = childState.Length,
+                                }).
+                            ToArray();
+
+                        visit.Push(
+                            new StateTraversal
+                            {
+                                Configuration = child,
+                                OnEnter = current.OnEnter.Concat(new[] { child.OnEnter, }).ToArray(),
+                                OnExit = new[] { child.OnExit, }.Concat(current.OnExit).ToArray(),
+                                State = childState,
+                                Transitions = current.Transitions.Concat(childTransitions).ToArray(),
+                            });
+                    }
+                }
+            }
+
+            Linear.StateTransition[] stateTransitions = unrolled.
+                SelectMany(
+                    currentState =>
+                    {
+                        Action[] onExits = currentState.OnExit.
+                            Where(e => e != null).
+                            Select(e => e.Compile()).
+                            ToArray();
+
+                        TransitionTraversal[] transitions = currentState.Transitions.
+                            GroupBy(t => t.Input).
+                            Select(g => g.OrderByDescending(t => t.Rank).FirstOrDefault()).
+                            ToArray();
+
+                        return transitions.
+                            Select(
+                                t => new Linear.StateTransition
+                                {
+                                    DebuggerDisplay = isDebuggerDisplayEnabled ? $"{string.Join<Enum>(".", currentState.State)} -- {t.Input} --> {string.Join<Enum>(".", t.Next)}" : string.Empty,
+                                    Input = t.Input,
+                                    Next = t.Next,
+                                    Output = GetOutput(t, unrolled, onExits),
+                                    State = currentState.State,
+                                });
+                    }).
+                ToArray();
+
+            return stateTransitions;
+        }
+
+        private static Action GetOutput(
+            this TransitionTraversal currentTransition,
+            IList<StateTraversal> states,
+            IEnumerable<Action> currentStateOnExits)
+        {
+            Action onTransition = currentTransition.OnTransition?.Compile();
+
+            Action[] onEnters = states.
+                Single(s => s.State.SequenceEqual(currentTransition.Next)).OnEnter.
+                Where(e => e != null).
+                Select(e => e.Compile()).
+                ToArray();
+
+            return () =>
+            {
+                foreach (Action onExit in currentStateOnExits) { onExit(); }
+                onTransition();
+                foreach (Action onEnter in onEnters) { onEnter(); }
+            };
+        }
+
         private static Linear.TransitionTuple GetTransitionTuple(
             this TransitionTraversal currentTransition,
             bool isDebuggerDisplayEnabled,
