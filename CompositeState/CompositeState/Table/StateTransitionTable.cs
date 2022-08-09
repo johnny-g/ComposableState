@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace CompositeState.Linear
+namespace CompositeState.Table
 {
 
     [System.Diagnostics.DebuggerDisplay("{DebuggerDisplay}")]

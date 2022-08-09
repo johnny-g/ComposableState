@@ -53,7 +53,7 @@ namespace CompositeState
             return path.ToArray();
         }
 
-        public static Linear.StateTransitionTable ToStateTransitionTable(
+        public static Table.StateTransitionTable ToStateTransitionTable(
             this StateMachineConfiguration configuration,
             bool isDebuggerDisplayEnabled = false)
         {
@@ -116,7 +116,7 @@ namespace CompositeState
                 }
             }
 
-            Linear.StateTuple[] states = new Linear.StateTuple[unrolled.Count];
+            Table.StateTuple[] states = new Table.StateTuple[unrolled.Count];
             for (int i = 0; i < states.Length; i++)
             {
                 StateTraversal current = unrolled[i];
@@ -131,7 +131,7 @@ namespace CompositeState
                     Select(g => g.OrderByDescending(t => t.Rank).FirstOrDefault()).
                     ToArray();
 
-                states[i] = new Linear.StateTuple
+                states[i] = new Table.StateTuple
                 {
                     DebuggerDisplay = isDebuggerDisplayEnabled ? $"{string.Join<Enum>(".", current.State)} ({transitions.Length} transitions)" : string.Empty,
                     State = current.State,
@@ -141,7 +141,7 @@ namespace CompositeState
                 };
             }
 
-            return new Linear.StateTransitionTable(states);
+            return new Table.StateTransitionTable(states);
         }
 
         public static IEnumerable<Linear.StateTransition> ToStateTransitions(
@@ -258,7 +258,7 @@ namespace CompositeState
             };
         }
 
-        private static Linear.TransitionTuple GetTransitionTuple(
+        private static Table.TransitionTuple GetTransitionTuple(
             this TransitionTraversal currentTransition,
             bool isDebuggerDisplayEnabled,
             IList<StateTraversal> states,
@@ -274,7 +274,7 @@ namespace CompositeState
                 Select(e => e.Compile()).
                 ToArray();
 
-            return new Linear.TransitionTuple
+            return new Table.TransitionTuple
             {
                 DebuggerDisplay = isDebuggerDisplayEnabled ? $"{string.Join<Enum>(".", currentState.State)} -- {currentTransition.Input} --> {string.Join<Enum>(".", currentTransition.Next)}" : string.Empty,
                 Input = currentTransition.Input,
