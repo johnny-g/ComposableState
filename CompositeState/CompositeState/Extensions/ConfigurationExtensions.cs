@@ -73,7 +73,7 @@ namespace CompositeState
                     new Table.StateTuple
                     {
                         DebuggerDisplay = isDebuggerDisplayEnabled ? 
-                            string.Join<Enum>(".", g.Key) : 
+                            g.Key.GetDotDelimited() : 
                             Table.StateTuple.DefaultDebuggerDisplay,
 
                         State = g.Key,
@@ -82,7 +82,7 @@ namespace CompositeState
                                 new Table.TransitionTuple
                                 {
                                     DebuggerDisplay = isDebuggerDisplayEnabled ? 
-                                        $"{string.Join<Enum>(".", s.State)} -- {s.Input} --> {string.Join<Enum>(".", s.Next)}" : 
+                                        $"{s.State.GetDotDelimited()} -- {s.Input} --> {s.Next.GetDotDelimited()}" : 
                                         Table.TransitionTuple.DefaultDebuggerDisplay,
 
                                     Input = s.Input,
@@ -178,7 +178,7 @@ namespace CompositeState
                                 t => new Linear.StateTransition
                                 {
                                     DebuggerDisplay = isDebuggerDisplayEnabled ? 
-                                        $"{string.Join<Enum>(".", currentState.State)} -- {t.Input} --> {string.Join<Enum>(".", t.Next)}" : 
+                                        $"{currentState.State.GetDotDelimited()} -- {t.Input} --> {t.Next.GetDotDelimited()}" : 
                                         Linear.StateTransition.DefaultDebuggerDisplay,
 
                                     Input = t.Input,
@@ -190,6 +190,12 @@ namespace CompositeState
                 ToArray();
 
             return stateTransitions;
+        }
+
+        private static string GetDotDelimited(this IEnumerable<Enum> values)
+        {
+            string dotDelimited = string.Join(".", values);
+            return dotDelimited;
         }
 
         private static Action GetOutput(
