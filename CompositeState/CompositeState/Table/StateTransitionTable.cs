@@ -7,12 +7,24 @@ namespace CompositeState.Table
 
     public class StateTransitionTable : IStateMachine
     {
-        private int currentState = 0;
+        public static readonly int DefaultStartStateIndex = 0;
+
+        private int currentState = DefaultStartStateIndex;
+        private int startState = DefaultStartStateIndex;
         private StateTuple[] states = null;
 
-        public StateTransitionTable(IEnumerable<StateTuple> states)
+        public StateTuple this[int stateIndex] { get => states[stateIndex]; }
+
+        public IEnumerable<Enum> Start => states[startState].State;
+
+        public IEnumerable<StateTuple> States => states;
+
+        public StateTransitionTable(IEnumerable<StateTuple> states, int? startState = 0)
         {
+            this.startState = startState ?? DefaultStartStateIndex;
             this.states = states.ToArray();
+
+            currentState = this.startState;
         }
 
         // IStateMachine members
@@ -27,7 +39,7 @@ namespace CompositeState.Table
             if (transition != null)
             {
                 result = StateMachineResult.Transitioned;
-                currentState = transition.Next;
+                currentState = transition.Next.Value;
                 transition.Output?.Invoke();
             }
 

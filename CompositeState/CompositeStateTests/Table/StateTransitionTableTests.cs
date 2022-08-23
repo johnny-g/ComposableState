@@ -2,10 +2,10 @@
 using System.Collections.Generic;
 using Xunit;
 
-namespace CompositeState.Composite
+namespace CompositeState.Table
 {
 
-    public class CompositeStateMachineTests
+    public class StateTransitionTableTests
     {
 
         public enum Input { Continue, GoBack, Skip, }
@@ -75,66 +75,66 @@ namespace CompositeState.Composite
         public void Fire_WhenInputHasTransition_ReturnsTransitioned()
         {
             StateMachineConfiguration configuration = Level1Configuration;
-            CompositeStateMachine machine = configuration.ToCompositeStateMachine();
+            StateTransitionTable table = configuration.ToStateTransitionTable();
 
-            StateMachineResponse actual = machine.Fire(Input.Continue);
+            StateMachineResponse actual = table.Fire(Input.Continue);
 
             Assert.Equal(StateMachineResult.Transitioned, actual.Result);
-            Assert.Equal(new Enum[] { Level1State.B, Level2State.D, }, actual.State);
+            Assert.Equal(State.Path(Level1State.B, Level2State.D), actual.State);
         }
 
         [Fact]
         public void Fire_WhenInputHasNoTransition_ReturnsNoAction()
         {
             StateMachineConfiguration configuration = Level1Configuration;
-            CompositeStateMachine machine = configuration.ToCompositeStateMachine();
+            StateTransitionTable table = configuration.ToStateTransitionTable();
 
-            StateMachineResponse actual = machine.Fire(Input.GoBack);
+            StateMachineResponse actual = table.Fire(Input.GoBack);
 
             Assert.Equal(StateMachineResult.NoAction, actual.Result);
-            Assert.Equal(new Enum[] { Level1State.A, }, actual.State);
+            Assert.Equal(State.Path(Level1State.A), actual.State);
         }
 
         [Fact]
         public void Fire_WhenSubStateAndInputHasTransition_ReturnsTransitionedWithinSubState()
         {
             StateMachineConfiguration configuration = Level1Configuration;
-            CompositeStateMachine machine = configuration.ToCompositeStateMachine();
-            machine.Fire(Input.Continue);
+            StateTransitionTable table = configuration.ToStateTransitionTable();
+            table.Fire(Input.Continue);
 
-            StateMachineResponse actual = machine.Fire(Input.Continue);
+            StateMachineResponse actual = table.Fire(Input.Continue);
 
             Assert.Equal(StateMachineResult.Transitioned, actual.Result);
-            Assert.Equal(new Enum[] { Level1State.B, Level2State.E, }, actual.State);
+            Assert.Equal(State.Path(Level1State.B, Level2State.E), actual.State);
         }
 
         [Fact]
         public void Fire_WhenSubStateAndInputHasNoTransition_ReturnsTransitionedOutOfSubState()
         {
             StateMachineConfiguration configuration = Level1Configuration;
-            CompositeStateMachine machine = configuration.ToCompositeStateMachine();
-            machine.Fire(Input.Continue);
-            machine.Fire(Input.Continue);
+            StateTransitionTable table = configuration.ToStateTransitionTable();
+            table.Fire(Input.Continue);
+            table.Fire(Input.Continue);
 
-            StateMachineResponse actual = machine.Fire(Input.GoBack);
+            StateMachineResponse actual = table.Fire(Input.GoBack);
 
             Assert.Equal(StateMachineResult.Transitioned, actual.Result);
-            Assert.Equal(new Enum[] { Level1State.A, }, actual.State);
+            Assert.Equal(State.Path(Level1State.A), actual.State);
         }
 
         [Fact]
         public void Fire_WhenReenteringSubState_ReturnsTransitionedAndStartOfSubState()
         {
             StateMachineConfiguration configuration = Level1Configuration;
-            CompositeStateMachine machine = configuration.ToCompositeStateMachine();
-            machine.Fire(Input.Continue);
-            machine.Fire(Input.Continue);
-            machine.Fire(Input.GoBack);
+            StateTransitionTable table = configuration.ToStateTransitionTable();
+            table.Fire(Input.Continue);
+            table.Fire(Input.Continue);
+            table.Fire(Input.GoBack);
 
-            StateMachineResponse actual = machine.Fire(Input.Continue);
+            StateMachineResponse actual = table.Fire(Input.Continue);
 
             Assert.Equal(StateMachineResult.Transitioned, actual.Result);
-            Assert.Equal(new Enum[] { Level1State.B, Level2State.D, }, actual.State);
+            Assert.Equal(State.Path(Level1State.B, Level2State.D), actual.State);
         }
 
         [Fact]
@@ -143,7 +143,7 @@ namespace CompositeState.Composite
             List<string> log = new List<string>();
             StateMachineConfiguration configuration = GetStateMachineWithActions(aOnEnter: () => log.Add("aOnEnter"));
 
-            IStateMachine machine = configuration.ToCompositeStateMachine();
+            StateTransitionTable table = configuration.ToStateTransitionTable();
 
             Assert.Empty(log);
         }
@@ -157,16 +157,17 @@ namespace CompositeState.Composite
                 bOnEnter: () => log.Add("bOnEnter"),
                 dOnEnter: () => log.Add("dOnEnter"),
                 eOnEnter: () => log.Add("eOnEnter"));
-            CompositeStateMachine machine = configuration.ToCompositeStateMachine();
+            StateTransitionTable table = configuration.ToStateTransitionTable();
 
-            machine.Fire(Input.Continue);
-            machine.Fire(Input.Continue);
-            machine.Fire(Input.Continue);
+            table.Fire(Input.Continue);
+            table.Fire(Input.Continue);
+            table.Fire(Input.Continue);
 
             Assert.Collection(
                 log,
                 l => Assert.Equal("aOnEnter", l),
                 l => Assert.Equal("dOnEnter", l),
+                l => Assert.Equal("aOnEnter", l),
                 l => Assert.Equal("eOnEnter", l),
                 l => Assert.Equal("bOnEnter", l));
         }
@@ -180,10 +181,10 @@ namespace CompositeState.Composite
                 bOnEnter: () => log.Add("bOnEnter"),
                 dOnEnter: () => log.Add("dOnEnter"),
                 eOnEnter: () => log.Add("eOnEnter"));
-            CompositeStateMachine machine = configuration.ToCompositeStateMachine();
+            StateTransitionTable table = configuration.ToStateTransitionTable();
 
-            machine.Fire(Input.Continue);
-            machine.Fire(Input.Skip);
+            table.Fire(Input.Continue);
+            table.Fire(Input.Skip);
 
             Assert.Collection(
                 log,
@@ -201,15 +202,16 @@ namespace CompositeState.Composite
                 bOnExit: () => log.Add("bOnExit"),
                 dOnExit: () => log.Add("dOnExit"),
                 eOnExit: () => log.Add("eOnExit"));
-            CompositeStateMachine machine = configuration.ToCompositeStateMachine();
+            StateTransitionTable table = configuration.ToStateTransitionTable();
 
-            machine.Fire(Input.Continue);
-            machine.Fire(Input.Continue);
-            machine.Fire(Input.Continue);
+            table.Fire(Input.Continue);
+            table.Fire(Input.Continue);
+            table.Fire(Input.Continue);
 
             Assert.Collection(
                 log,
                 l => Assert.Equal("dOnExit", l),
+                l => Assert.Equal("aOnExit", l),
                 l => Assert.Equal("eOnExit", l),
                 l => Assert.Equal("aOnExit", l));
         }
@@ -223,10 +225,10 @@ namespace CompositeState.Composite
                 bOnExit: () => log.Add("bOnExit"),
                 dOnExit: () => log.Add("dOnExit"),
                 eOnExit: () => log.Add("eOnExit"));
-            CompositeStateMachine machine = configuration.ToCompositeStateMachine();
+            StateTransitionTable table = configuration.ToStateTransitionTable();
 
-            machine.Fire(Input.Continue);
-            machine.Fire(Input.Skip);
+            table.Fire(Input.Continue);
+            table.Fire(Input.Skip);
 
             Assert.Collection(
                 log,
@@ -242,11 +244,11 @@ namespace CompositeState.Composite
                 continueAToBOnTransition: () => log.Add("continueAToBOnTransition"),
                 skipAToBOnTransition: () => log.Add("skipAToBOnTransition"),
                 continueDToEOnTransition: () => log.Add("continueDToEOnTransition"));
-            CompositeStateMachine machine = configuration.ToCompositeStateMachine();
+            StateTransitionTable table = configuration.ToStateTransitionTable();
 
-            machine.Fire(Input.Continue);
-            machine.Fire(Input.Continue);
-            machine.Fire(Input.Continue);
+            table.Fire(Input.Continue);
+            table.Fire(Input.Continue);
+            table.Fire(Input.Continue);
 
             Assert.Collection(
                 log,

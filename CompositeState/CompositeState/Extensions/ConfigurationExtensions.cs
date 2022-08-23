@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
-using CompositeState.Composite;
 
 namespace CompositeState
 {
@@ -17,8 +16,6 @@ namespace CompositeState
             ordered = ordered.Concat(states.Except(ordered)).ToArray();
             return ordered;
         }
-
-        private static readonly TransitionConfiguration[] EmptyTransitions = new TransitionConfiguration[] { };
 
         public class TransitionTraversal
         {
@@ -67,8 +64,11 @@ namespace CompositeState
             this IEnumerable<Linear.StateTransition> stateTransitions,
             bool isDebuggerDisplayEnabled = false)
         {
-            Table.StateTuple[] states = stateTransitions.
+            var grouped = stateTransitions.
                 GroupBy(s => s.State).
+                ToArray();
+
+            Table.StateTuple[] states = grouped.
                 Select(g =>
                     new Table.StateTuple
                     {
@@ -81,12 +81,14 @@ namespace CompositeState
                             Select(s =>
                                 new Table.TransitionTuple
                                 {
-                                    DebuggerDisplay = isDebuggerDisplayEnabled ? 
-                                        $"{s.State.GetDotDelimited()} -- {s.Input} --> {s.Next.GetDotDelimited()}" : 
+                                    DebuggerDisplay = isDebuggerDisplayEnabled ?
+                                        $"{s.State.GetDotDelimited()} -- {s.Input} --> {s.Next.GetDotDelimited()}" :
                                         Table.TransitionTuple.DefaultDebuggerDisplay,
 
                                     Input = s.Input,
-                                    Next = stateTransitions.TakeWhile(t => !ReferenceEquals(t, s)).Count(),
+                                    Next = s.Next != null ?
+                                        grouped.TakeWhile(group => !group.Key.SequenceEqual(s.Next)).Count() :
+                                        default(int?),
                                     Output = s.Output,
                                 }).
                             ToArray(),
@@ -111,7 +113,7 @@ namespace CompositeState
                             OnEnter = new[] { s.OnEnter, },
                             OnExit = new[] { s.OnExit, },
                             State = new[] { s.State, },
-                            Transitions = s.Transitions.
+                            Transitions = (s.Transitions ?? Array.Empty<TransitionConfiguration>()).
                                 Select(t =>
                                     new TransitionTraversal
                                     {
@@ -133,7 +135,7 @@ namespace CompositeState
                     foreach (StateConfiguration child in current.Configuration.SubState.States.OrderByStartStateThenPreserveOrder(current.Configuration.SubState.Start).Reverse())
                     {
                         Enum[] childState = current.State.Concat(new[] { child.State, }).ToArray();
-                        TransitionTraversal[] childTransitions = child.Transitions.
+                        TransitionTraversal[] childTransitions = (child.Transitions ?? Array.Empty<TransitionConfiguration>()).
                             Select(t =>
                                 new TransitionTraversal
                                 {
@@ -173,12 +175,21 @@ namespace CompositeState
                             Select(g => g.OrderByDescending(t => t.Rank).FirstOrDefault()).
                             ToArray();
 
+                        if (!transitions.Any())
+                        {
+                            transitions = new[] { new TransitionTraversal { }, };
+                        }
+
                         return transitions.
                             Select(
                                 t => new Linear.StateTransition
                                 {
                                     DebuggerDisplay = isDebuggerDisplayEnabled ? 
-                                        $"{currentState.State.GetDotDelimited()} -- {t.Input} --> {t.Next.GetDotDelimited()}" : 
+                                        (
+                                            t.Next != null ? 
+                                                $"{currentState.State.GetDotDelimited()} -- {t.Input} --> {t.Next.GetDotDelimited()}" : 
+                                                $"{currentState.State.GetDotDelimited()} (no transition)"
+                                        ) : 
                                         Linear.StateTransition.DefaultDebuggerDisplay,
 
                                     Input = t.Input,
@@ -205,71 +216,20 @@ namespace CompositeState
         {
             Action onTransition = currentTransition.OnTransition?.Compile();
 
-            Action[] onEnters = states.
-                Single(s => s.State.SequenceEqual(currentTransition.Next)).OnEnter.
-                Where(e => e != null).
-                Select(e => e.Compile()).
-                ToArray();
+            Action[] onEnters = currentTransition.Next != null ?
+                states.
+                    Single(s => s.State.SequenceEqual(currentTransition.Next)).OnEnter.
+                    Where(e => e != null).
+                    Select(e => e.Compile()).
+                    ToArray() :
+                Array.Empty<Action>();
 
             return () =>
             {
                 foreach (Action onExit in currentStateOnExits) { onExit(); }
-                onTransition();
+                onTransition?.Invoke();
                 foreach (Action onEnter in onEnters) { onEnter(); }
             };
-        }
-
-        public static CompositeStateMachine ToCompositeStateMachine(this StateMachineConfiguration configuration)
-        {
-            Dictionary<StateMachineConfiguration, CompositeStateMachine> mapped = new Dictionary<StateMachineConfiguration, CompositeStateMachine>();
-            Stack<StateMachineConfiguration> unmapped = new Stack<StateMachineConfiguration>();
-            Queue<StateMachineConfiguration> visit = new Queue<StateMachineConfiguration>(new[] { configuration, });
-
-            for (; visit.Any() || unmapped.Any();)
-            {
-                StateMachineConfiguration current = visit.Any() ? visit.Dequeue() : unmapped.Pop();
-
-                if (!mapped.ContainsKey(current))
-                {
-                    IEnumerable<StateMachineConfiguration> currentUnmapped = current.States.
-                        Where(s => s.SubState != null && !mapped.ContainsKey(s.SubState)).
-                        Select(s => s.SubState);
-
-                    if (currentUnmapped.Any())
-                    {
-                        unmapped.Push(current);
-                        foreach (StateMachineConfiguration c in currentUnmapped) { visit.Enqueue(c); }
-                    }
-                    else
-                    {
-                        StateTuple[] tuples = current.States.
-                            Select(s =>
-                                new StateTuple
-                                {
-                                    OnEnter = s.OnEnter?.Compile(),
-                                    OnExit = s.OnExit?.Compile(),
-                                    State = s.State,
-                                    SubState = mapped.SingleOrDefault(m => m.Key == s.SubState).Value,
-                                    Transitions = (s.Transitions ?? EmptyTransitions).
-                                        Select(t =>
-                                            new TransitionTuple
-                                            {
-                                                Input = t.Input,
-                                                Next = t.Next,
-                                                OnTransition = t.OnTransition?.Compile(),
-                                            }).
-                                        ToArray(),
-                                }).
-                            ToArray();
-
-                        CompositeStateMachine machine = new CompositeStateMachine(tuples, current.Start);
-
-                        mapped.Add(current, machine);
-                    }
-                }
-            }
-
-            return mapped[configuration];
         }
 
     }

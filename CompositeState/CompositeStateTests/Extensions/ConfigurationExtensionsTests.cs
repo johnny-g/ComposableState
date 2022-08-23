@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Linq;
-using CompositeState.Composite;
 using CompositeState.Linear;
 using Xunit;
 
@@ -110,96 +109,6 @@ namespace CompositeState
         //  tests
 
         [Fact]
-        public void ToCompositeStateMachine_WhenFlatConfiguration_ReturnsStateMachineWithStatesAndTransitions()
-        {
-            StateMachineConfiguration configuration = FlatConfiguration;
-
-            CompositeStateMachine actual = configuration.ToCompositeStateMachine();
-
-            Assert.Equal(FlatState.A, actual.Start);
-            Assert.Equal(new Enum[] { FlatState.A, }, actual.State);
-            Assert.Collection(
-                actual.States,
-                s =>
-                {
-                    Assert.Equal(FlatState.A, s.State);
-                    Assert.Collection(
-                        s.Transitions,
-                        t =>
-                        {
-                            Assert.Equal(Input.Continue, t.Input);
-                            Assert.Equal(FlatState.B, t.Next);
-                        });
-                },
-                s =>
-                {
-                    Assert.Equal(FlatState.B, s.State);
-                    Assert.Collection(
-                        s.Transitions,
-                        t =>
-                        {
-                            Assert.Equal(Input.Continue, t.Input);
-                            Assert.Equal(FlatState.C, t.Next);
-                        },
-                        t =>
-                        {
-                            Assert.Equal(Input.GoBack, t.Input);
-                            Assert.Equal(FlatState.A, t.Next);
-                        });
-                },
-                s =>
-                {
-                    Assert.Equal(FlatState.C, s.State);
-                    Assert.Collection(
-                        s.Transitions,
-                        t =>
-                        {
-                            Assert.Equal(Input.GoBack, t.Input);
-                            Assert.Equal(FlatState.B, t.Next);
-                        });
-                });
-        }
-
-        [Fact]
-        public void ToCompositeStateMachine_WhenTieredConfiguration_ReturnsStateMachineWithStates()
-        {
-            StateMachineConfiguration configuration = Level1Configuration;
-
-            CompositeStateMachine actual = configuration.ToCompositeStateMachine();
-
-            Assert.Equal(Level1State.A, actual.Start);
-            Assert.Equal(new Enum[] { Level1State.A, }, actual.State);
-            Assert.Collection(
-                actual.States,
-                s => Assert.Equal(Level1State.A, s.State),
-                s =>
-                {
-                    Assert.Equal(Level1State.B, s.State);
-                    Assert.NotNull(s.SubState);
-                    CompositeStateMachine actualSubState = s.SubState;
-                    Assert.Equal(Level2State.D, actualSubState.Start);
-                    Assert.Collection(
-                        actualSubState.States,
-                        t => Assert.Equal(Level2State.D, t.State),
-                        t => Assert.Equal(Level2State.E, t.State),
-                        t => Assert.Equal(Level2State.F, t.State));
-                },
-                s => Assert.Equal(Level1State.C, s.State));
-        }
-
-        [Fact]
-        public void ToCompositeStateMachine_WhenComplexConfiguration_ReturnsStateMachineWithSingletonSubStateMachines()
-        {
-            StateMachineConfiguration configuration = Complex1Configuration;
-
-            CompositeStateMachine actual = configuration.ToCompositeStateMachine();
-
-            Assert.Equal(new Enum[] { Level1State.A, Level2State.D, }, actual.State);
-            Assert.Same(actual[Level1State.A].SubState, actual[Level1State.B].SubState);
-            Assert.Same(actual[Level1State.C].SubState, actual[Level1State.B].SubState[Level2State.E].SubState);
-        }
-
-        [Fact]
         public void ToStateTransitions_WhenSimpleHierarchicalConfiguration_ReturnsStateTransitions()
         {
             StateMachineConfiguration subStateE = new StateMachineConfiguration
@@ -276,33 +185,39 @@ namespace CompositeState
                 stateTransitions,
                 s =>
                 {
-                    Assert.True(s.State.SequenceEqual(new Enum[] { Level1State.A, }));
+                    Assert.Equal(State.Path(Level1State.A), s.State);
                     Assert.Equal(Input.Continue, s.Input);
-                    Assert.True(s.Next.SequenceEqual(new Enum[] { Level1State.B, Level2State.D, }));
+                    Assert.Equal(State.Path(Level1State.B, Level2State.D), s.Next);
                 },
                 s =>
                 {
-                    Assert.True(s.State.SequenceEqual(new Enum[] { Level1State.B, Level2State.D, }));
+                    Assert.Equal(State.Path(Level1State.B, Level2State.D), s.State);
                     Assert.Equal(Input.Continue, s.Input);
-                    Assert.True(s.Next.SequenceEqual(new Enum[] { Level1State.B, Level2State.E, Level3State.G, }));
+                    Assert.Equal(State.Path(Level1State.B, Level2State.E, Level3State.G), s.Next);
                 },
                 s =>
                 {
-                    Assert.True(s.State.SequenceEqual(new Enum[] { Level1State.B, Level2State.E, Level3State.G, }));
+                    Assert.Equal(State.Path(Level1State.B, Level2State.E, Level3State.G), s.State);
                     Assert.Equal(Input.Continue, s.Input);
-                    Assert.True(s.Next.SequenceEqual(new Enum[] { Level1State.B, Level2State.E, Level3State.H, }));
+                    Assert.Equal(State.Path(Level1State.B, Level2State.E, Level3State.H), s.Next);
                 },
                 s =>
                 {
-                    Assert.True(s.State.SequenceEqual(new Enum[] { Level1State.B, Level2State.E, Level3State.H, }));
+                    Assert.Equal(State.Path(Level1State.B, Level2State.E, Level3State.H), s.State);
                     Assert.Equal(Input.Continue, s.Input);
-                    Assert.True(s.Next.SequenceEqual(new Enum[] { Level1State.B, Level2State.F, }));
+                    Assert.Equal(State.Path(Level1State.B, Level2State.F), s.Next);
                 },
                 s =>
                 {
-                    Assert.True(s.State.SequenceEqual(new Enum[] { Level1State.B, Level2State.F, }));
+                    Assert.Equal(State.Path(Level1State.B, Level2State.F), s.State);
                     Assert.Equal(Input.Continue, s.Input);
-                    Assert.True(s.Next.SequenceEqual(new Enum[] { Level1State.C, }));
+                    Assert.Equal(State.Path(Level1State.C), s.Next);
+                },
+                s =>
+                {
+                    Assert.Equal(State.Path(Level1State.C), s.State);
+                    Assert.Null(s.Input);
+                    Assert.Null(s.Next);
                 });
         }
 
@@ -339,95 +254,134 @@ namespace CompositeState
                 stateTransitions,
                 s =>
                 {
-                    Assert.True(s.State.SequenceEqual(new Enum[] { Level1State.A, }));
+                    Assert.Equal(State.Path(Level1State.A), s.State);
                     Assert.Equal(Input.Continue, s.Input);
-                    Assert.True(s.Next.SequenceEqual(new Enum[] { Level1State.B, }));
+                    Assert.Equal(State.Path(Level1State.B), s.Next);
                 },
                 s =>
                 {
-                    Assert.True(s.State.SequenceEqual(new Enum[] { Level1State.A, }));
+                    Assert.Equal(State.Path(Level1State.A), s.State);
                     Assert.Equal(Input.GoBack, s.Input);
-                    Assert.True(s.Next.SequenceEqual(new Enum[] { Level1State.A, }));
+                    Assert.Equal(State.Path(Level1State.A), s.Next);
                 },
                 s =>
                 {
-                    Assert.True(s.State.SequenceEqual(new Enum[] { Level1State.B, }));
+                    Assert.Equal(State.Path(Level1State.B), s.State);
                     Assert.Equal(Input.GoBack, s.Input);
-                    Assert.True(s.Next.SequenceEqual(new Enum[] { Level1State.A, }));
+                    Assert.Equal(State.Path(Level1State.A), s.Next);
                 });
         }
 
         [Fact]
-        public void ToStateTransitionTable()
+        public void ToStateTransitionTable_WhenFlatConfiguration_ReturnsStateTransitionTable()
         {
-            StateMachineConfiguration subStateE = new StateMachineConfiguration
-            {
-                Start = Level3State.G,
-                States = new[]
+            StateMachineConfiguration configuration = FlatConfiguration;
+
+            Table.StateTransitionTable actual = configuration.ToStateTransitionTable();
+
+            Assert.Equal(State.Path(FlatState.A), actual.Start);
+            Assert.Collection(
+                actual.States,
+                s =>
                 {
-                    new StateConfiguration
-                    {
-                        State = Level3State.G,
-                        Transitions = new[] { new TransitionConfiguration { Input = Input.Continue, Next = Level3State.H, }, },
-                    },
-                    new StateConfiguration
-                    {
-                        State = Level3State.H,
-                        Transitions = new TransitionConfiguration[] { },
-                    },
-                },
-            };
+                    Assert.Equal(State.Path(FlatState.A), s.State);
+                    Assert.Collection(
+                        s.Transitions,
+                        t =>
+                        {
+                            int expectedNextStateIndex = 1;
+                            Assert.Equal(Input.Continue, t.Input);
+                            Assert.Equal(expectedNextStateIndex, t.Next);
 
-            StateMachineConfiguration subStateB = new StateMachineConfiguration
-            {
-                Start = Level2State.D,
-                States = new[]
+                            Enum[] expectedNextState = State.Path(FlatState.B);
+                            Enum[] actualNextState = actual[t.Next.Value].State;
+                            Assert.Equal(expectedNextState, actualNextState);
+                        });
+                },
+                s =>
                 {
-                    new StateConfiguration
-                    {
-                        State = Level2State.D,
-                        Transitions = new[] { new TransitionConfiguration { Input = Input.Continue, Next = Level2State.E, }, },
-                    },
-                    new StateConfiguration
-                    {
-                        State = Level2State.E,
-                        SubState = subStateE,
-                        Transitions = new[] { new TransitionConfiguration { Input = Input.Continue, Next = Level2State.F, }, },
-                    },
-                    new StateConfiguration
-                    {
-                        State = Level2State.F,
-                        Transitions = new TransitionConfiguration[] { },
-                    },
-                },
-            };
+                    Assert.Equal(State.Path(FlatState.B), s.State);
+                    Assert.Collection(
+                        s.Transitions,
+                        t =>
+                        {
+                            int expectedNextStateIndex = 2;
+                            Assert.Equal(Input.Continue, t.Input);
+                            Assert.Equal(expectedNextStateIndex, t.Next);
 
-            StateMachineConfiguration configuration = new StateMachineConfiguration
-            {
-                Start = Level1State.A,
-                States = new[]
+                            Enum[] expectedNextState = State.Path(FlatState.C);
+                            Enum[] actualNextState = actual[t.Next.Value].State;
+                            Assert.Equal(expectedNextState, actualNextState);
+                        },
+                        t =>
+                        {
+                            int expectedNextStateIndex = 0;
+                            Assert.Equal(Input.GoBack, t.Input);
+                            Assert.Equal(expectedNextStateIndex, t.Next);
+
+                            Enum[] expectedNextState = State.Path(FlatState.A);
+                            Enum[] actualNextState = actual[t.Next.Value].State;
+                            Assert.Equal(expectedNextState, actualNextState);
+                        });
+                },
+                s =>
                 {
-                    new StateConfiguration
-                    {
-                        State = Level1State.A,
-                        Transitions = new[] { new TransitionConfiguration { Input = Input.Continue, Next = Level1State.B, }, },
-                    },
-                    new StateConfiguration
-                    {
-                        State = Level1State.B,
-                        SubState = subStateB,
-                        Transitions = new[] { new TransitionConfiguration { Input = Input.Continue, Next = Level1State.C, }, },
-                    },
-                    new StateConfiguration
-                    {
-                        State = Level1State.C,
-                        Transitions = new TransitionConfiguration[] { },
-                    },
-                },
-            };
+                    Assert.Equal(State.Path(FlatState.C), s.State);
+                    Assert.Collection(
+                        s.Transitions,
+                        t =>
+                        {
+                            int expectedNextStateIndex = 1;
+                            Assert.Equal(Input.GoBack, t.Input);
+                            Assert.Equal(expectedNextStateIndex, t.Next);
 
-            Table.StateTransitionTable table = configuration.ToStateTransitionTable(isDebuggerDisplayEnabled: false);
+                            Enum[] expectedNextState = State.Path(FlatState.B);
+                            Enum[] actualNextState = actual[t.Next.Value].State;
+                            Assert.Equal(expectedNextState, actualNextState);
+                        });
+                });
+        }
 
+        [Fact]
+        public void ToStateTransitionTable_WhenTieredConfiguration_ReturnsStateTransitionTable()
+        {
+            StateMachineConfiguration configuration = Level1Configuration;
+
+            Table.StateTransitionTable actual = configuration.ToStateTransitionTable();
+
+            Assert.Equal(State.Path(Level1State.A), actual.Start);
+            Assert.Collection(
+                actual.States,
+                s => Assert.Equal(State.Path(Level1State.A), s.State),
+                s => Assert.Equal(State.Path(Level1State.B, Level2State.D), s.State),
+                s => Assert.Equal(State.Path(Level1State.B, Level2State.E), s.State),
+                s => Assert.Equal(State.Path(Level1State.B, Level2State.F), s.State),
+                s => Assert.Equal(State.Path(Level1State.C), s.State));
+        }
+
+        [Fact]
+        public void ToStateTransitionTable_WhenComplexConfiguration_ReturnsStateTransitionTable()
+        {
+            StateMachineConfiguration configuration = Complex1Configuration;
+
+            Table.StateTransitionTable actual = configuration.ToStateTransitionTable();
+
+            Assert.Equal(State.Path(Level1State.A, Level2State.D), actual.Start);
+            Assert.Collection(
+                actual.States,
+                s => Assert.Equal(State.Path(Level1State.A, Level2State.D), s.State),
+                s => Assert.Equal(State.Path(Level1State.A, Level2State.E, Level3State.G), s.State),
+                s => Assert.Equal(State.Path(Level1State.A, Level2State.E, Level3State.H), s.State),
+                s => Assert.Equal(State.Path(Level1State.A, Level2State.E, Level3State.I), s.State),
+                s => Assert.Equal(State.Path(Level1State.A, Level2State.F), s.State),
+                s => Assert.Equal(State.Path(Level1State.B, Level2State.D), s.State),
+                s => Assert.Equal(State.Path(Level1State.B, Level2State.E, Level3State.G), s.State),
+                s => Assert.Equal(State.Path(Level1State.B, Level2State.E, Level3State.H), s.State),
+                s => Assert.Equal(State.Path(Level1State.B, Level2State.E, Level3State.I), s.State),
+                s => Assert.Equal(State.Path(Level1State.B, Level2State.F), s.State),
+                s => Assert.Equal(State.Path(Level1State.C, Level3State.G), s.State),
+                s => Assert.Equal(State.Path(Level1State.C, Level3State.H), s.State),
+                s => Assert.Equal(State.Path(Level1State.C, Level3State.I), s.State));
         }
 
     }
