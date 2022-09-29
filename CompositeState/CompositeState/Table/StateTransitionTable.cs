@@ -19,12 +19,24 @@ namespace CompositeState.Table
 
         public IEnumerable<StateTuple> States => states;
 
-        public StateTransitionTable(IEnumerable<StateTuple> states, int? startState = 0)
+        public StateTransitionTable(IEnumerable<StateTuple> states, IEnumerable<Enum> startState = null)
         {
-            this.startState = startState ?? DefaultStartStateIndex;
-            this.states = states.ToArray();
+            states = states ?? throw new ArgumentNullException(nameof(states), $"Cannot instantiate {nameof(StateTransitionTable)} with null {nameof(states)}.");
+            if (!states.Any()) { throw new ArgumentException($"Cannot instantiate {nameof(StateTransitionTable)} with '{states.Count()}' {nameof(states)}.", nameof(states)); }
 
-            currentState = this.startState;
+            int startStateIndex = DefaultStartStateIndex;
+            if (startState != null)
+            {
+                if (!startState.Any()) { throw new ArgumentException($"Cannot instantiate {nameof(StateTransitionTable)} with {nameof(startState)} '{startState.GetDotDelimited()}'. Specify a valid {nameof(startState)} or specify null {nameof(startState)} to default to first {nameof(StateTuple.State)}.", nameof(startState)); }
+
+                StateTuple startStateTuple = states.FirstOrDefault(s => s.State.SequenceEqual(startState));
+                if (startStateTuple == null) { throw new ArgumentException($"Cannot instantiate {nameof(StateTransitionTable)} with {nameof(startState)} '{startState.GetDotDelimited()}'. Cannot find {nameof(startState)} '{startState.GetDotDelimited()}'. Specify a valid {nameof(startState)} or specify null {nameof(startState)} to default to first {nameof(StateTuple.State)}.", nameof(startState)); }
+
+                startStateIndex = states.TakeWhile(s => s != startStateTuple).Count();
+            }
+
+            this.startState = currentState = startStateIndex;
+            this.states = states.ToArray();
         }
 
         // IStateMachine members

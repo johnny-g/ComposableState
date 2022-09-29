@@ -72,6 +72,42 @@ namespace CompositeState.Table
         // tests
 
         [Fact]
+        public void Constructor_WhenNullStates_ThrowsArgumentNull()
+        {
+            ArgumentNullException actual = Assert.Throws<ArgumentNullException>("states", () => new StateTransitionTable(null));
+
+            Assert.Equal("Cannot instantiate StateTransitionTable with null states. (Parameter 'states')", actual.Message);
+        }
+
+        [Fact]
+        public void Constructor_WhenNoStates_ThrowsArgument()
+        {
+            ArgumentException actual = Assert.Throws<ArgumentException>("states", () => new StateTransitionTable(new StateTuple[] { }));
+
+            Assert.Equal("Cannot instantiate StateTransitionTable with '0' states. (Parameter 'states')", actual.Message);
+        }
+
+        [Fact]
+        public void Constructor_WhenNoStartState_ThrowsArgument()
+        {
+            StateTuple[] states = new[] { new StateTuple { State = new Enum[] { Level1State.A, }, Transitions = new TransitionTuple[] { }, }, };
+
+            ArgumentException actual = Assert.Throws<ArgumentException>("startState", () => new StateTransitionTable(states, new Enum[] { }));
+
+            Assert.Equal("Cannot instantiate StateTransitionTable with startState ''. Specify a valid startState or specify null startState to default to first State. (Parameter 'startState')", actual.Message);
+        }
+
+        [Fact]
+        public void Constructor_WhenInvalidStartState_ThrowsArgument()
+        {
+            StateTuple[] states = new[] { new StateTuple { State = new Enum[] { Level1State.A, }, Transitions = new TransitionTuple[] { }, }, };
+
+            ArgumentException actual = Assert.Throws<ArgumentException>("startState", () => new StateTransitionTable(states, new Enum[] { Level1State.B, }));
+
+            Assert.Equal("Cannot instantiate StateTransitionTable with startState 'B'. Cannot find startState 'B'. Specify a valid startState or specify null startState to default to first State. (Parameter 'startState')", actual.Message);
+        }
+
+        [Fact]
         public void Fire_WhenInputHasTransition_ReturnsTransitioned()
         {
             StateMachineConfiguration configuration = Level1Configuration;
