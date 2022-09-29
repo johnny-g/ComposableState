@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using CompositeState.Linear;
 using Xunit;
@@ -106,7 +107,34 @@ namespace CompositeState
                 },
             };
 
+        public static readonly IEnumerable<object[]> GetDotDelimited_WhenNotNull_Data =
+            new[]
+            {
+                new object[] { new Enum[] { Level1State.A, Level2State.D, Level3State.G, }, "A.D.G", },
+                new object[] { new Enum[] { Level1State.A, }, "A", },
+                new object[] { new Enum[] { }, string.Empty, },
+            };
+
         //  tests
+
+        [Theory]
+        [MemberData(nameof(GetDotDelimited_WhenNotNull_Data))]
+        public void GetDotDelimited_WhenNotNull_ReturnsLiteral(Enum[] values, string expected)
+        {
+            string actual = values.GetDotDelimited();
+
+            Assert.Equal(expected, actual);
+        }
+
+        [Fact]
+        public void GetDotDelimited_WhenNull_ThrowsArgumentNull()
+        {
+            Enum[] statePath = null;
+
+            ArgumentNullException actual = Assert.Throws<ArgumentNullException>("values", () => statePath.GetDotDelimited());
+
+            Assert.Equal("Cannot generate dot-delimited literal from null values. (Parameter 'values')", actual.Message);
+        }
 
         [Fact]
         public void ToStateTransitions_WhenSimpleHierarchicalConfiguration_ReturnsStateTransitions()

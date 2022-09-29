@@ -34,19 +34,12 @@ namespace CompositeState
             public TransitionTraversal[] Transitions { get; set; }
         }
 
-        private static Enum[] GetNextFullStatePath(this IEnumerable<StateConfiguration> states, Enum start)
+        public static string GetDotDelimited(this IEnumerable<Enum> values)
         {
-            List<Enum> path = new List<Enum>();
-            Enum current = start;
-            StateConfiguration configuration = null;
-            for (; states != null; )
-            {
-                configuration = states.SingleOrDefault(s => s.State.Equals(current));
-                path.Add(current);
-                current = configuration.SubState?.Start;
-                states = configuration.SubState?.States;
-            }
-            return path.ToArray();
+            values = values ?? throw new ArgumentNullException(nameof(values), $"Cannot generate dot-delimited literal from null {nameof(values)}.");
+
+            string dotDelimited = string.Join(".", values);
+            return dotDelimited;
         }
 
         public static Table.StateTransitionTable ToStateTransitionTable(
@@ -203,10 +196,19 @@ namespace CompositeState
             return stateTransitions;
         }
 
-        private static string GetDotDelimited(this IEnumerable<Enum> values)
+        private static Enum[] GetNextFullStatePath(this IEnumerable<StateConfiguration> states, Enum start)
         {
-            string dotDelimited = string.Join(".", values);
-            return dotDelimited;
+            List<Enum> path = new List<Enum>();
+            Enum current = start;
+            StateConfiguration configuration = null;
+            for (; states != null;)
+            {
+                configuration = states.SingleOrDefault(s => s.State.Equals(current));
+                path.Add(current);
+                current = configuration.SubState?.Start;
+                states = configuration.SubState?.States;
+            }
+            return path.ToArray();
         }
 
         private static Action GetOutput(
