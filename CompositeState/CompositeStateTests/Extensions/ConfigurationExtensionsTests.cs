@@ -51,8 +51,8 @@ namespace CompositeState
                 Start = Level2State.D,
                 States = new[]
                 {
-                    new StateConfiguration { State = Level2State.D, },
-                    new StateConfiguration { State = Level2State.E, },
+                    new StateConfiguration { State = Level2State.D, Transitions = new[] { new TransitionConfiguration { Input = Input.Continue, Next = Level2State.E, }, }, },
+                    new StateConfiguration { State = Level2State.E, Transitions = new[] { new TransitionConfiguration { Input = Input.Continue, Next = Level2State.F, }, }, },
                     new StateConfiguration { State = Level2State.F, },
                 },
             };
@@ -63,8 +63,8 @@ namespace CompositeState
                 Start = Level1State.A,
                 States = new[] 
                 {
-                    new StateConfiguration { State = Level1State.A, },
-                    new StateConfiguration { State = Level1State.B, SubState = Level2Configuration, },
+                    new StateConfiguration { State = Level1State.A, Transitions = new[] { new TransitionConfiguration { Input = Input.Continue, Next = Level1State.B, }, }, },
+                    new StateConfiguration { State = Level1State.B, SubState = Level2Configuration, Transitions = new[] { new TransitionConfiguration { Input = Input.Continue, Next = Level1State.C, }, }, },
                     new StateConfiguration { State = Level1State.C, },
                 },
             };
@@ -77,8 +77,8 @@ namespace CompositeState
                 Start = Level3State.G,
                 States = new[]
                 {
-                    new StateConfiguration { State = Level3State.G, },
-                    new StateConfiguration { State = Level3State.H, },
+                    new StateConfiguration { State = Level3State.G, Transitions = new[] { new TransitionConfiguration { Input = Input.Continue, Next = Level3State.H, }, }, },
+                    new StateConfiguration { State = Level3State.H, Transitions = new[] { new TransitionConfiguration { Input = Input.Continue, Next = Level3State.I, }, }, },
                     new StateConfiguration { State = Level3State.I, },
                 },
             };
@@ -89,8 +89,8 @@ namespace CompositeState
                 Start = Level2State.D,
                 States = new[]
                 {
-                    new StateConfiguration { State = Level2State.D, },
-                    new StateConfiguration { State = Level2State.E, SubState = Complex3Configuration, },
+                    new StateConfiguration { State = Level2State.D, Transitions = new[] { new TransitionConfiguration { Input = Input.Continue, Next = Level2State.E, }, }, },
+                    new StateConfiguration { State = Level2State.E, SubState = Complex3Configuration, Transitions = new[] { new TransitionConfiguration { Input = Input.Continue, Next = Level2State.F, }, }, },
                     new StateConfiguration { State = Level2State.F, },
                 },
             };
@@ -101,8 +101,8 @@ namespace CompositeState
                 Start = Level1State.A,
                 States = new[]
                 {
-                    new StateConfiguration { State = Level1State.A, SubState = Complex2Configuration, },
-                    new StateConfiguration { State = Level1State.B, SubState = Complex2Configuration, },
+                    new StateConfiguration { State = Level1State.A, SubState = Complex2Configuration, Transitions = new[] { new TransitionConfiguration { Input = Input.Continue, Next = Level1State.B, }, }, },
+                    new StateConfiguration { State = Level1State.B, SubState = Complex2Configuration, Transitions = new[] { new TransitionConfiguration { Input = Input.Continue, Next = Level1State.C, }, }, },
                     new StateConfiguration { State = Level1State.C, SubState = Complex3Configuration, },
                 },
             };
@@ -240,12 +240,6 @@ namespace CompositeState
                     Assert.Equal(State.Path(Level1State.B, Level2State.F), s.State);
                     Assert.Equal(Input.Continue, s.Input);
                     Assert.Equal(State.Path(Level1State.C), s.Next);
-                },
-                s =>
-                {
-                    Assert.Equal(State.Path(Level1State.C), s.State);
-                    Assert.Null(s.Input);
-                    Assert.Null(s.Next);
                 });
         }
 
@@ -322,7 +316,7 @@ namespace CompositeState
                             Assert.Equal(expectedNextStateIndex, t.Next);
 
                             Enum[] expectedNextState = State.Path(FlatState.B);
-                            Enum[] actualNextState = actual[t.Next.Value].State;
+                            Enum[] actualNextState = actual[t.Next].State;
                             Assert.Equal(expectedNextState, actualNextState);
                         });
                 },
@@ -338,7 +332,7 @@ namespace CompositeState
                             Assert.Equal(expectedNextStateIndex, t.Next);
 
                             Enum[] expectedNextState = State.Path(FlatState.C);
-                            Enum[] actualNextState = actual[t.Next.Value].State;
+                            Enum[] actualNextState = actual[t.Next].State;
                             Assert.Equal(expectedNextState, actualNextState);
                         },
                         t =>
@@ -348,7 +342,7 @@ namespace CompositeState
                             Assert.Equal(expectedNextStateIndex, t.Next);
 
                             Enum[] expectedNextState = State.Path(FlatState.A);
-                            Enum[] actualNextState = actual[t.Next.Value].State;
+                            Enum[] actualNextState = actual[t.Next].State;
                             Assert.Equal(expectedNextState, actualNextState);
                         });
                 },
@@ -364,7 +358,7 @@ namespace CompositeState
                             Assert.Equal(expectedNextStateIndex, t.Next);
 
                             Enum[] expectedNextState = State.Path(FlatState.B);
-                            Enum[] actualNextState = actual[t.Next.Value].State;
+                            Enum[] actualNextState = actual[t.Next].State;
                             Assert.Equal(expectedNextState, actualNextState);
                         });
                 });

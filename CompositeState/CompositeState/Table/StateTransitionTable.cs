@@ -51,7 +51,7 @@ namespace CompositeState.Table
             if (transition != null)
             {
                 result = StateMachineResult.Transitioned;
-                currentState = transition.Next.Value;
+                currentState = transition.Next;
                 transition.Output?.Invoke();
             }
 

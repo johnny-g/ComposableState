@@ -8,22 +8,7 @@ namespace CompositeState
 
     public static class ConfigurationExtensions
     {
-        public static IEnumerable<StateConfiguration> OrderByStartStateThenPreserveOrder(
-            this IEnumerable<StateConfiguration> states,
-            Enum start)
-        {
-            StateConfiguration[] ordered = new[] { states.Single(s => s.State.Equals(start)), };
-            ordered = ordered.Concat(states.Except(ordered)).ToArray();
-            return ordered;
-        }
-
-        public class TransitionTraversal
-        {
-            public Enum Input { get; set; }
-            public Enum[] Next { get; set; }
-            public Expression<Action> OnTransition { get; set; }
-            public int Rank { get; set; }
-        }
+        private static IEqualityComparer<Enum[]> StatePathComparer = new StatePathEqualityComparer();
 
         public class StateTraversal
         {
@@ -34,12 +19,29 @@ namespace CompositeState
             public TransitionTraversal[] Transitions { get; set; }
         }
 
+        public class TransitionTraversal
+        {
+            public Enum Input { get; set; }
+            public Enum[] Next { get; set; }
+            public Expression<Action> OnTransition { get; set; }
+            public int Rank { get; set; }
+        }
+
         public static string GetDotDelimited(this IEnumerable<Enum> values)
         {
             values = values ?? throw new ArgumentNullException(nameof(values), $"Cannot generate dot-delimited literal from null {nameof(values)}.");
 
             string dotDelimited = string.Join(".", values);
             return dotDelimited;
+        }
+
+        public static IEnumerable<StateConfiguration> OrderByStartStateThenPreserveOrder(
+            this IEnumerable<StateConfiguration> states,
+            Enum start)
+        {
+            StateConfiguration[] ordered = new[] { states.Single(s => s.State.Equals(start)), };
+            ordered = ordered.Concat(states.Except(ordered)).ToArray();
+            return ordered;
         }
 
         public static Table.StateTransitionTable ToStateTransitionTable(
@@ -57,16 +59,18 @@ namespace CompositeState
             this IEnumerable<Linear.StateTransition> stateTransitions,
             bool isDebuggerDisplayEnabled = false)
         {
-            var grouped = stateTransitions.
-                GroupBy(s => s.State).
-                ToArray();
+            var stateTransitionsGrouped = stateTransitions.GroupBy(s => s.State, StatePathComparer).ToArray();
 
-            Table.StateTuple[] states = grouped.
+            var statesWithTransitions = stateTransitionsGrouped.Select(t => t.Key).ToArray();
+            var statesWithNoTransitions = stateTransitions.Select(s => s.Next).Distinct(StatePathComparer).ToArray();
+            var union = statesWithTransitions.Concat(statesWithNoTransitions.Except(statesWithTransitions, StatePathComparer)).ToArray();
+
+            Table.StateTuple[] stateTuples = stateTransitionsGrouped.
                 Select(g =>
                     new Table.StateTuple
                     {
-                        DebuggerDisplay = isDebuggerDisplayEnabled ? 
-                            g.Key.GetDotDelimited() : 
+                        DebuggerDisplay = isDebuggerDisplayEnabled ?
+                            g.Key.GetDotDelimited() :
                             Table.StateTuple.DefaultDebuggerDisplay,
 
                         State = g.Key,
@@ -79,16 +83,27 @@ namespace CompositeState
                                         Table.TransitionTuple.DefaultDebuggerDisplay,
 
                                     Input = s.Input,
-                                    Next = s.Next != null ?
-                                        grouped.TakeWhile(group => !group.Key.SequenceEqual(s.Next)).Count() :
-                                        default(int?),
+                                    Next = union.TakeWhile(u => !u.SequenceEqual(s.Next)).Count(),
                                     Output = s.Output,
                                 }).
                             ToArray(),
                     }).
+                Concat(
+                    union.
+                        Except(statesWithTransitions, StatePathComparer).
+                        Select(s =>
+                            new Table.StateTuple
+                            {
+                                DebuggerDisplay = isDebuggerDisplayEnabled ?
+                                    s.GetDotDelimited() :
+                                    Table.StateTuple.DefaultDebuggerDisplay,
+
+                                State = s,
+                                Transitions = Array.Empty<Table.TransitionTuple>(),
+                            })).
                 ToArray();
 
-            return new Table.StateTransitionTable(states);
+            return new Table.StateTransitionTable(stateTuples);
         }
 
         public static IEnumerable<Linear.StateTransition> ToStateTransitions(
@@ -155,6 +170,7 @@ namespace CompositeState
             }
 
             Linear.StateTransition[] stateTransitions = unrolled.
+                Where(currentState => currentState.Transitions.Any()).
                 SelectMany(
                     currentState =>
                     {
@@ -168,21 +184,12 @@ namespace CompositeState
                             Select(g => g.OrderByDescending(t => t.Rank).FirstOrDefault()).
                             ToArray();
 
-                        if (!transitions.Any())
-                        {
-                            transitions = new[] { new TransitionTraversal { }, };
-                        }
-
                         return transitions.
                             Select(
                                 t => new Linear.StateTransition
                                 {
                                     DebuggerDisplay = isDebuggerDisplayEnabled ? 
-                                        (
-                                            t.Next != null ? 
-                                                $"{currentState.State.GetDotDelimited()} -- {t.Input} --> {t.Next.GetDotDelimited()}" : 
-                                                $"{currentState.State.GetDotDelimited()} (no transition)"
-                                        ) : 
+                                        $"{currentState.State.GetDotDelimited()} -- {t.Input} --> {t.Next.GetDotDelimited()}" :
                                         Linear.StateTransition.DefaultDebuggerDisplay,
 
                                     Input = t.Input,
@@ -195,6 +202,8 @@ namespace CompositeState
 
             return stateTransitions;
         }
+
+        // private methods
 
         private static Enum[] GetNextFullStatePath(this IEnumerable<StateConfiguration> states, Enum start)
         {
