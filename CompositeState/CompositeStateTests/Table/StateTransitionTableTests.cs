@@ -323,8 +323,8 @@ namespace CompositeState.Table
                     {
                         new StateConfiguration
                         {
-                            OnEnter = () => dOnEnter(),
-                            OnExit = () => dOnExit(),
+                            OnEnter = _ => dOnEnter(),
+                            OnExit = _ => dOnExit(),
                             State = Level2State.D,
                             Transitions = new[]
                             {
@@ -332,14 +332,14 @@ namespace CompositeState.Table
                                 {
                                     Input = Input.Continue,
                                     Next = Level2State.E,
-                                    OnTransition = () => continueDToEOnTransition(),
+                                    OnTransition = (_, _) => continueDToEOnTransition(),
                                 },
                             }
                         },
                         new StateConfiguration
                         {
-                            OnEnter = () => eOnEnter(),
-                            OnExit = () => eOnExit(),
+                            OnEnter = _ => eOnEnter(),
+                            OnExit = _ => eOnExit(),
                             State = Level2State.E,
                         },
                     },
@@ -358,8 +358,8 @@ namespace CompositeState.Table
                         },
                         new StateConfiguration
                         {
-                            OnEnter = () => aOnEnter(),
-                            OnExit = () => aOnExit(),
+                            OnEnter = _ => aOnEnter(),
+                            OnExit = _ => aOnExit(),
                             State = Level1State.A,
                             SubState = level2,
                             Transitions = new[]
@@ -368,20 +368,20 @@ namespace CompositeState.Table
                                 {
                                     Input = Input.Continue,
                                     Next = Level1State.B,
-                                    OnTransition = () => continueAToBOnTransition(),
+                                    OnTransition = (_, _) => continueAToBOnTransition(),
                                 },
                                 new TransitionConfiguration
                                 {
                                     Input = Input.Skip,
                                     Next = Level1State.B,
-                                    OnTransition = () => skipAToBOnTransition(),
+                                    OnTransition = (_, _) => skipAToBOnTransition(),
                                 },
                             }
                         },
                         new StateConfiguration
                         {
-                            OnEnter = () => bOnEnter(),
-                            OnExit = () => bOnExit(),
+                            OnEnter = _ => bOnEnter(),
+                            OnExit = _ => bOnExit(),
                             State = Level1State.B,
                         },
                     },

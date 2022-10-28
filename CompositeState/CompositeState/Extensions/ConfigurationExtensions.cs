@@ -13,8 +13,8 @@ namespace CompositeState
         public class StateTraversal
         {
             public StateConfiguration Configuration { get; set; }
-            public Expression<Action>[] OnEnter { get; set; }
-            public Expression<Action>[] OnExit { get; set; }
+            public Expression<OnEnterDelegate>[] OnEnter { get; set; }
+            public Expression<OnExitDelegate>[] OnExit { get; set; }
             public Enum[] State { get; set; }
             public TransitionTraversal[] Transitions { get; set; }
         }
@@ -23,7 +23,7 @@ namespace CompositeState
         {
             public Enum Input { get; set; }
             public Enum[] Next { get; set; }
-            public Expression<Action> OnTransition { get; set; }
+            public Expression<OnTransitionDelegate> OnTransition { get; set; }
             public int Rank { get; set; }
         }
 
@@ -174,7 +174,7 @@ namespace CompositeState
                 SelectMany(
                     currentState =>
                     {
-                        Action[] onExits = currentState.OnExit.
+                        OnExitDelegate[] onExits = currentState.OnExit.
                             Where(e => e != null).
                             Select(e => e.Compile()).
                             ToArray();
@@ -194,7 +194,7 @@ namespace CompositeState
 
                                     Input = t.Input,
                                     Next = t.Next,
-                                    Output = GetOutput(t, unrolled, onExits),
+                                    Output = t.GetOutput(unrolled, onExits),
                                     State = currentState.State,
                                 });
                     }).
@@ -220,26 +220,26 @@ namespace CompositeState
             return path.ToArray();
         }
 
-        private static Action GetOutput(
+        private static OnTransitionDelegate GetOutput(
             this TransitionTraversal currentTransition,
             IList<StateTraversal> states,
-            IEnumerable<Action> currentStateOnExits)
+            IEnumerable<OnExitDelegate> currentStateOnExits)
         {
-            Action onTransition = currentTransition.OnTransition?.Compile();
+            OnTransitionDelegate onTransition = currentTransition.OnTransition?.Compile();
 
-            Action[] onEnters = currentTransition.Next != null ?
+            OnEnterDelegate[] onEnters = currentTransition.Next != null ?
                 states.
                     Single(s => s.State.SequenceEqual(currentTransition.Next)).OnEnter.
                     Where(e => e != null).
                     Select(e => e.Compile()).
                     ToArray() :
-                Array.Empty<Action>();
+                Array.Empty<OnEnterDelegate>();
 
-            return () =>
+            return (from, to) =>
             {
-                foreach (Action onExit in currentStateOnExits) { onExit(); }
-                onTransition?.Invoke();
-                foreach (Action onEnter in onEnters) { onEnter(); }
+                foreach (OnExitDelegate onExit in currentStateOnExits) { onExit(from); }
+                onTransition?.Invoke(from, to);
+                foreach (OnEnterDelegate onEnter in onEnters) { onEnter(to); }
             };
         }
 

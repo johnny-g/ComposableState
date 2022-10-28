@@ -11,7 +11,7 @@ namespace CompositeState.Table
         public string DebuggerDisplay { get; set; }
         public Enum Input { get; set; }
         public int Next { get; set; }
-        public Action Output { get; set; }
+        public OnTransitionDelegate Output { get; set; }
     }
 
 }

@@ -51,8 +51,10 @@ namespace CompositeState.Table
             if (transition != null)
             {
                 result = StateMachineResult.Transitioned;
+                Enum[] from = states[currentState].State;
                 currentState = transition.Next;
-                transition.Output?.Invoke();
+                Enum[] to = states[currentState].State;
+                transition.Output?.Invoke(from, to);
             }
 
             return new StateMachineResponse
