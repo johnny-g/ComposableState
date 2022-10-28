@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace CompositeState
+namespace CompositeState.Configuration
 {
 
     public class StateMachineConfiguration
