@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using CompositeState.Configuration;
+using CompositeState.Extensions;
 using Xunit;
 
-namespace CompositeState
+namespace CompositeState.StateMachine
 {
 
     public class StateTransitionTableTests

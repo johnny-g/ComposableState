@@ -1,4 +1,6 @@
-﻿namespace CompositeState
+﻿using CompositeState.Configuration;
+
+namespace CompositeState
 {
 
     /// <summary>

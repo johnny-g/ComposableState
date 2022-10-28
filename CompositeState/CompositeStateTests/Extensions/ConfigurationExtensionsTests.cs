@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using CompositeState.Configuration;
+using CompositeState.StateMachine;
 using Xunit;
 
-namespace CompositeState
+namespace CompositeState.Extensions
 {
 
     public class ConfigurationExtensionsTests

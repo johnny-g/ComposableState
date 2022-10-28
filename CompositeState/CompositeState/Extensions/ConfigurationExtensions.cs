@@ -2,8 +2,10 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using CompositeState.Configuration;
+using CompositeState.StateMachine;
 
-namespace CompositeState
+namespace CompositeState.Extensions
 {
 
     public static class ConfigurationExtensions

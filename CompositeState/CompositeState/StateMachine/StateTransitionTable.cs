@@ -1,8 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using CompositeState.Extensions;
 
-namespace CompositeState
+namespace CompositeState.StateMachine
 {
 
     public class StateTransitionTable : IStateMachine

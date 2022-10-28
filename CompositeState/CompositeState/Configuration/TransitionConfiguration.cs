@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Linq.Expressions;
 
-namespace CompositeState
+namespace CompositeState.Configuration
 {
 
     /// <summary>
