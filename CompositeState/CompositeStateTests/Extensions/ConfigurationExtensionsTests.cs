@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Linq.Expressions;
-using CompositeState.Linear;
 using Xunit;
 
 namespace CompositeState
@@ -300,7 +298,7 @@ namespace CompositeState
         {
             StateMachineConfiguration configuration = FlatConfiguration;
 
-            Table.StateTransitionTable actual = configuration.ToStateTransitionTable();
+            StateTransitionTable actual = configuration.ToStateTransitionTable();
 
             Assert.Equal(State.Path(FlatState.A), actual.Start);
             Assert.Collection(
@@ -370,7 +368,7 @@ namespace CompositeState
         {
             StateMachineConfiguration configuration = Level1Configuration;
 
-            Table.StateTransitionTable actual = configuration.ToStateTransitionTable();
+            StateTransitionTable actual = configuration.ToStateTransitionTable();
 
             Assert.Equal(State.Path(Level1State.A), actual.Start);
             Assert.Collection(
@@ -387,7 +385,7 @@ namespace CompositeState
         {
             StateMachineConfiguration configuration = Complex1Configuration;
 
-            Table.StateTransitionTable actual = configuration.ToStateTransitionTable();
+            StateTransitionTable actual = configuration.ToStateTransitionTable();
 
             Assert.Equal(State.Path(Level1State.A, Level2State.D), actual.Start);
             Assert.Collection(

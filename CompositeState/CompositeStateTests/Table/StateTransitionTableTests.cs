@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using Xunit;
 
-namespace CompositeState.Table
+namespace CompositeState
 {
 
     public class StateTransitionTableTests

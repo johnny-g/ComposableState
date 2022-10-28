@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace CompositeState.Table
+namespace CompositeState
 {
 
     public class StateTransitionTable : IStateMachine

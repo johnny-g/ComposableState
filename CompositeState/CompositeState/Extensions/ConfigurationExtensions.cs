@@ -44,19 +44,19 @@ namespace CompositeState
             return ordered;
         }
 
-        public static Table.StateTransitionTable ToStateTransitionTable(
+        public static StateTransitionTable ToStateTransitionTable(
             this StateMachineConfiguration configuration,
             bool isDebuggerDisplayEnabled = false)
         {
-            Table.StateTransitionTable table = configuration.
+            StateTransitionTable table = configuration.
                 ToStateTransitions(isDebuggerDisplayEnabled).
                 ToStateTransitionTable(isDebuggerDisplayEnabled);
 
             return table;
         }
 
-        public static Table.StateTransitionTable ToStateTransitionTable(
-            this IEnumerable<Linear.StateTransition> stateTransitions,
+        public static StateTransitionTable ToStateTransitionTable(
+            this IEnumerable<StateTransition> stateTransitions,
             bool isDebuggerDisplayEnabled = false)
         {
             var stateTransitionsGrouped = stateTransitions.GroupBy(s => s.State, StatePathComparer).ToArray();
@@ -65,22 +65,22 @@ namespace CompositeState
             var statesWithNoTransitions = stateTransitions.Select(s => s.Next).Distinct(StatePathComparer).ToArray();
             var union = statesWithTransitions.Concat(statesWithNoTransitions.Except(statesWithTransitions, StatePathComparer)).ToArray();
 
-            Table.StateTuple[] stateTuples = stateTransitionsGrouped.
+            StateTuple[] stateTuples = stateTransitionsGrouped.
                 Select(g =>
-                    new Table.StateTuple
+                    new StateTuple
                     {
                         DebuggerDisplay = isDebuggerDisplayEnabled ?
                             g.Key.GetDotDelimited() :
-                            Table.StateTuple.DefaultDebuggerDisplay,
+                            StateTuple.DefaultDebuggerDisplay,
 
                         State = g.Key,
                         Transitions = g.
                             Select(s =>
-                                new Table.TransitionTuple
+                                new TransitionTuple
                                 {
                                     DebuggerDisplay = isDebuggerDisplayEnabled ?
                                         $"{s.State.GetDotDelimited()} -- {s.Input} --> {s.Next.GetDotDelimited()}" :
-                                        Table.TransitionTuple.DefaultDebuggerDisplay,
+                                        TransitionTuple.DefaultDebuggerDisplay,
 
                                     Input = s.Input,
                                     Next = union.TakeWhile(u => !u.SequenceEqual(s.Next)).Count(),
@@ -92,21 +92,21 @@ namespace CompositeState
                     union.
                         Except(statesWithTransitions, StatePathComparer).
                         Select(s =>
-                            new Table.StateTuple
+                            new StateTuple
                             {
                                 DebuggerDisplay = isDebuggerDisplayEnabled ?
                                     s.GetDotDelimited() :
-                                    Table.StateTuple.DefaultDebuggerDisplay,
+                                    StateTuple.DefaultDebuggerDisplay,
 
                                 State = s,
-                                Transitions = Array.Empty<Table.TransitionTuple>(),
+                                Transitions = Array.Empty<TransitionTuple>(),
                             })).
                 ToArray();
 
-            return new Table.StateTransitionTable(stateTuples);
+            return new StateTransitionTable(stateTuples);
         }
 
-        public static IEnumerable<Linear.StateTransition> ToStateTransitions(
+        public static IEnumerable<StateTransition> ToStateTransitions(
             this StateMachineConfiguration configuration,
             bool isDebuggerDisplayEnabled = false)
         {
@@ -169,7 +169,7 @@ namespace CompositeState
                 }
             }
 
-            Linear.StateTransition[] stateTransitions = unrolled.
+            StateTransition[] stateTransitions = unrolled.
                 Where(currentState => currentState.Transitions.Any()).
                 SelectMany(
                     currentState =>
@@ -186,11 +186,11 @@ namespace CompositeState
 
                         return transitions.
                             Select(
-                                t => new Linear.StateTransition
+                                t => new StateTransition
                                 {
                                     DebuggerDisplay = isDebuggerDisplayEnabled ? 
                                         $"{currentState.State.GetDotDelimited()} -- {t.Input} --> {t.Next.GetDotDelimited()}" :
-                                        Linear.StateTransition.DefaultDebuggerDisplay,
+                                        StateTransition.DefaultDebuggerDisplay,
 
                                     Input = t.Input,
                                     Next = t.Next,

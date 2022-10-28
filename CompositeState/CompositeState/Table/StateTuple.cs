@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace CompositeState.Table
+namespace CompositeState
 {
 
     [System.Diagnostics.DebuggerDisplay("{DebuggerDisplay}")]
